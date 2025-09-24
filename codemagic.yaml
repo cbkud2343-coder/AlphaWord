@@ -1,6 +1,6 @@
 workflows:
   alpha_ios:
-    name: AlphaWord iOS
+    name: AlphaWord iOS (self-healing)
     environment:
       xcode: latest
     scripts:
@@ -9,19 +9,16 @@ workflows:
           set -euxo pipefail
           pwd
           ls -la
-          echo "Swift files I see:"
-          find . -maxdepth 2 -type f -name "*.swift" -print | sort
-      - name: Install tools + list Swift-like files
-        script: |
-          set -euxo pipefail
-          brew install xcodegen || true
-          echo "Swift-ish files:"
+          echo "Swift-ish files I see now:"
           find . -maxdepth 2 -type f -iname "*.swift*" -print || true
-- name: Create minimal app files if missing
+
+      - name: Create minimal app files if missing
         script: |
           set -euxo pipefail
           rm -rf App
           mkdir -p App
+
+          # Swift files
           cat > App/AlphaWordApp.swift <<'SWIFT'
           import SwiftUI
           @main
@@ -29,6 +26,7 @@ workflows:
               var body: some Scene { WindowGroup { MainMenuView() } }
           }
           SWIFT
+
           cat > App/MainMenuView.swift <<'SWIFT'
           import SwiftUI
           struct MainMenuView: View {
@@ -40,6 +38,8 @@ workflows:
               }
           }
           SWIFT
+
+          # XcodeGen spec (points to App/; inline Info.plist)
           cat > project.yml <<'YAML'
           name: AlphaWord
           options:
@@ -73,7 +73,10 @@ workflows:
               run:
                 config: Release
           YAML
+
+          echo "After creating files:"
           ls -la
+          echo "Tree under App/:"
           ls -la App
 
       - name: Install XcodeGen & generate project
@@ -81,46 +84,10 @@ workflows:
           set -euxo pipefail
           brew install xcodegen || true
           xcodegen generate
+          echo "--- xcodebuild -list ---"
           xcodebuild -list -project AlphaWord.xcodeproj
-      # … (keep the remaining steps: Simulator build, Archive, Export IPA)
-          
-      - name: Generate Xcode project & list schemes
-        script: |
-          set -euxo pipefail
-          xcodegen generate
-          echo "--- xcodebuild -list ---"
-          xcodebuild -list -project AlphaWord.xcodeproj || true
-      # ... (rest of your steps unchanged)
 
-workflows:
-  alpha_ios:
-    name: AlphaWord iOS
-    environment:
-      xcode: latest
-    scripts:
-      - name: Install tools + list Swift-like files
-        script: |
-          set -euxo pipefail
-          brew install xcodegen || true
-          echo "Swift-ish files:"
-          find . -maxdepth 2 -type f -iname "*.swift*" -print || true
-      - name: Generate Xcode project & list schemes
-        script: |
-          set -euxo pipefail
-          xcodegen generate
-          echo "--- xcodebuild -list ---"
-          xcodebuild -list -project AlphaWord.xcodeproj || true
-      - name: Validate Info.plist only if it exists
-        script: |
-          set -euxo pipefail
-          if [ -f Info.plist ]; then
-            echo "Found Info.plist on disk; linting it..."
-            /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Info.plist || true
-            plutil -lint Info.plist
-          else
-            echo "No Info.plist file on disk (expected) — using inline properties from project.yml."
-          fi
-      - name: Compile for Simulator (catch code errors fast)
+      - name: Compile for Simulator (sanity)
         script: |
           set -euxo pipefail
           xcodebuild \
@@ -130,6 +97,7 @@ workflows:
             -destination 'platform=iOS Simulator,OS=latest,name=iPhone 14' \
             PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID:-com.abdulla.alphaword.dev}" \
             build
+
       - name: Archive (with auto-provisioning)
         script: |
           set -euxo pipefail
@@ -145,6 +113,7 @@ workflows:
             CODE_SIGN_STYLE=Automatic \
             SDKROOT=iphoneos \
             archive
+
       - name: Export IPA
         script: |
           set -euxo pipefail
@@ -164,8 +133,6 @@ workflows:
             -exportOptionsPlist $CM_BUILD_DIR/exportOptions.plist \
             -exportPath $CM_BUILD_DIR/export \
             -allowProvisioningUpdates
+
     artifacts:
       - $CM_BUILD_DIR/export/*.ipa
-
-
-
