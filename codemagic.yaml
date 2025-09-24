@@ -1,18 +1,14 @@
 workflows:
   alpha_ios:
-    name: AlphaWord iOS (deterministic)
+    name: AlphaWord iOS (one-step bootstrap)
     environment:
       xcode: latest
     scripts:
-      - name: Show repo tree
+      - name: Bootstrap + Generate project
         script: |
           set -euxo pipefail
-          pwd
-          ls -la
 
-      - name: Create minimal app files (always)
-        script: |
-          set -euxo pipefail
+          # 1) Create a clean App/ with two Swift files
           rm -rf App
           mkdir -p App
 
@@ -36,6 +32,7 @@ workflows:
           }
           SWIFTB
 
+          # 2) Write project.yml that points to App/
           cat > project.yml <<'YMLSPEC'
           name: AlphaWord
           options:
@@ -70,16 +67,17 @@ workflows:
                 config: Release
           YMLSPEC
 
-          echo "Created files:"
+          echo "== Repo root =="
+          pwd; ls -la
+          echo "== App/ =="
           ls -la App
-          echo "project.yml preview:"
+          echo "== project.yml =="
           sed -n '1,200p' project.yml
 
-      - name: Install XcodeGen & generate project
-        script: |
-          set -euxo pipefail
+          # 3) Install XcodeGen and generate the Xcode project
           brew install xcodegen || true
           xcodegen generate
+
           echo "--- xcodebuild -list ---"
           xcodebuild -list -project AlphaWord.xcodeproj
 
