@@ -30,6 +30,7 @@ struct GameView: View {
                 Spacer()
                 Text(nextHint)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
             .padding(.top, 6)
 
@@ -42,7 +43,9 @@ struct GameView: View {
                     core.submit(row: activeRow)
                     if !(core.checks[safe: activeRow] ?? false) {
                         shakeFlags[activeRow] = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { shakeFlags[activeRow] = false }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { 
+                            shakeFlags[activeRow] = false 
+                        }
                     } else {
                         activeRow = min(activeRow + 1, 4)
                     }
@@ -68,7 +71,9 @@ struct GameView: View {
             Text("Solve 5 words").font(.headline)
             Spacer()
             Button("Check All") {
-                for i in 0..<5 { core.submit(row: i) }
+                for i in 0..<5 { 
+                    core.submit(row: i) 
+                }
             }
             .buttonStyle(.bordered)
             .disabled(core.levelLocked)
@@ -78,7 +83,8 @@ struct GameView: View {
     private var gridHeader: some View {
         HStack(spacing: 8) {
             ForEach(1...5, id: \.self) { col in
-                Text("\(col)").font(.caption)
+                Text("\(col)")
+                    .font(.caption)
                     .frame(maxWidth: .infinity)
                     .padding(6)
                     .background(Pastel.accent.opacity(0.3))
@@ -89,7 +95,9 @@ struct GameView: View {
 
     private var nextHint: String {
         guard let idx = (0..<5).first(where: { !(core.checks[safe: $0] ?? true) }),
-              let spec = core.currentRows[safe: idx] else { return "All solved! 🎉" }
+              let spec = core.currentRows[safe: idx] else { 
+            return "All solved! 🎉" 
+        }
         return "Hint: \(spec.hint)"
     }
 
@@ -110,7 +118,9 @@ private struct RowView: View {
     let isCorrect: Bool
     let shake: Bool
 
-    var lockedCol: Int { lockedColumn(for: letter, rowIndex: rowIndex) }
+    var lockedCol: Int { 
+        lockedColumn(for: letter, rowIndex: rowIndex) 
+    }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -122,7 +132,11 @@ private struct RowView: View {
                         .stroke(Pastel.tileStroke, lineWidth: 1)
 
                     Text(char(at: col))
-                        .font(.system(size: 20, weight: (col == lockedCol) ? .heavy : .semibold, design: .rounded))
+                        .font(.system(
+                            size: 20, 
+                            weight: (col == lockedCol) ? .heavy : .semibold, 
+                            design: .rounded
+                        ))
                         .foregroundStyle(Pastel.text)
                 }
                 .frame(height: 48)
@@ -141,8 +155,10 @@ private struct RowView: View {
     }
 
     private func char(at col: Int) -> String {
-        guard let spec else { return " " }
-        if col == lockedCol { return String(spec.lockedLetter) }
+        guard let spec = spec else { return " " }
+        if col == lockedCol { 
+            return String(spec.lockedLetter).uppercased() 
+        }
         let t = text.uppercased()
         guard t.count >= col else { return " " }
         let idx = t.index(t.startIndex, offsetBy: col - 1)
@@ -154,6 +170,7 @@ private struct Shake: GeometryEffect {
     var amplitude: CGFloat = 8
     var shakesPerUnit: CGFloat = 3
     var animatableData: CGFloat
+    
     func effectValue(size: CGSize) -> ProjectionTransform {
         let tx = amplitude * sin(animatableData * .pi * shakesPerUnit)
         return ProjectionTransform(CGAffineTransform(translationX: tx, y: 0))
@@ -182,18 +199,14 @@ struct KeyboardView: View {
                 }
             }
             HStack(spacing: 8) {
-                Button {
-                    onDel()
-                } label: {
+                Button(action: onDel) {
                     Label("Delete", systemImage: "delete.left")
                         .labelStyle(.titleAndIcon)
                         .font(.subheadline)
                 }
                 .buttonStyle(.bordered)
 
-                Button {
-                    onSubmit()
-                } label: {
+                Button(action: onSubmit) {
                     Label("Submit", systemImage: "checkmark")
                         .labelStyle(.titleAndIcon)
                         .font(.subheadline)
@@ -208,7 +221,8 @@ struct KeyboardView: View {
 
     private func key(title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(.headline)
+            Text(title)
+                .font(.headline)
                 .frame(width: 32, height: 42)
                 .background(Pastel.accent.opacity(0.55))
                 .foregroundStyle(Pastel.text)
