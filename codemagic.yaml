@@ -4,16 +4,23 @@ workflows:
     environment:
       xcode: latest
     scripts:
-      - name: Install XcodeGen
+      - name: Diagnostics & install XcodeGen
         script: |
           set -euxo pipefail
-          brew install xcodegen
-      - name: Generate Xcode project
+          echo "Repo root:"
+          pwd
+          ls -la
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+      - name: Generate Xcode project & list schemes
         script: |
           set -euxo pipefail
           xcodegen generate
+          echo "Project files:"
+          ls -la
           xcodebuild -list -project AlphaWord.xcodeproj
-      - name: Archive
+      - name: Archive (with auto-provisioning)
         script: |
           set -euxo pipefail
           xcodebuild \
@@ -23,8 +30,10 @@ workflows:
             -destination 'generic/platform=iOS' \
             -archivePath $CM_BUILD_DIR/AlphaWord.xcarchive \
             -allowProvisioningUpdates \
-            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM_ID" \
+            DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM_ID}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}" \
             CODE_SIGN_STYLE=Automatic \
+            SDKROOT=iphoneos \
             archive
       - name: Export IPA
         script: |
