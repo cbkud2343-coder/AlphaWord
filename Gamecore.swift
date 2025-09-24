@@ -9,9 +9,15 @@ final class GCManager: NSObject, ObservableObject, GKGameCenterControllerDelegat
 
     func authenticate() {
         GKLocalPlayer.local.authenticateHandler = { vc, error in
-            if let vc { UIApplication.shared.topMostViewController()?.present(vc, animated: true) }
-            self.isAuthenticated = GKLocalPlayer.local.isAuthenticated
-            if let error { print("GC auth error:", error.localizedDescription) }
+            DispatchQueue.main.async {
+                if let vc = vc {
+                    UIApplication.shared.topMostViewController()?.present(vc, animated: true)
+                }
+                self.isAuthenticated = GKLocalPlayer.local.isAuthenticated
+                if let error = error {
+                    print("GC auth error:", error.localizedDescription)
+                }
+            }
         }
     }
 
@@ -22,9 +28,11 @@ final class GCManager: NSObject, ObservableObject, GKGameCenterControllerDelegat
         // Lower is better: Game Center sorts DESC by default; invert by submitting milliseconds negative.
         let ms = Int(seconds * 1000)
         score.value = Int64(-ms)
-        GKScore.report([score], withCompletionHandler: { err in
-            if let err { print("Submit error:", err.localizedDescription) }
-        })
+        GKScore.report([score]) { err in
+            if let err = err {
+                print("Submit error:", err.localizedDescription)
+            }
+        }
     }
 
     func presentLeaderboard(from vc: UIViewController, letterIndex: Int) {
@@ -54,24 +62,18 @@ final class GameCore: ObservableObject {
     private var startTime: Date?
     private var timer: Timer?
 
-    var currentLetter: String { Alpha.letters[safe: progress.currentIndex] ?? "A" }
-
-    init() {
-        if let decoded = try? JSONDecoder().decode(GameProgress.self, from: progressData), (0..<26).contains(decoded.currentIndex) {
-            progress = decoded
-        }
-        // Patch/fix a few tricky sets on load
-        cleanBanksIfNeeded()
-        loadLevel()
-        GCManager.shared.authenticate()
+    var currentLetter: String { 
+        guard progress.currentIndex >= 0 && progress.currentIndex < Alpha.letters.count else { return "A" }
+        return Alpha.letters[progress.currentIndex]
     }
 
-    // Replace some shaky entries programmatically
-    private func cleanBanksIfNeeded() {
-        // Q: QUILL, AQUAS, EQUAL, SQUAT, SQUAD(row5 override col4)
-        if WordBank.rows(for: 16) == nil {
-            // not used; we’ll rebuild in loadLevel anyway
+    init() {
+        if let decoded = try? JSONDecoder().decode(GameProgress.self, from: progressData), 
+           decoded.currentIndex >= 0 && decoded.currentIndex < 26 {
+            progress = decoded
         }
+        loadLevel()
+        GCManager.shared.authenticate()
     }
 
     func loadLevel() {
@@ -79,41 +81,45 @@ final class GameCore: ObservableObject {
         checks = .init(repeating: false, count: 5)
         levelLocked = false
 
-        guard let idx = (0..<26).first(where: { $0 == progress.currentIndex }),
-              let letter = Alpha.letters[safe: idx]
-        else { levelLocked = true; currentRows = []; return }
+        guard progress.currentIndex >= 0 && progress.currentIndex < 26,
+              let letter = Alpha.letters[safe: progress.currentIndex]
+        else { 
+            levelLocked = true 
+            currentRows = []
+            return 
+        }
 
-        var rows = WordBank.rows(for: idx) ?? []
-        // Rebuild a few letters here with safe words:
+        var rows = WordBank.rows(for: progress.currentIndex) ?? []
+        
+        // Dynamic word fixes for problematic letters
         if letter == "Q" {
             rows = [
                 .init(lockedLetter: "Q", lockedPosition: 1, answer: "QUILL", hint: "Feather pen."),
-                .init(lockedLetter: "Q", lockedPosition: 2, answer: "AQUAS", hint: "Waters (Latinate)."),
-                .init(lockedLetter: "Q", lockedPosition: 3, answer: "EQUAL", hint: "Same as."),
-                .init(lockedLetter: "Q", lockedPosition: 4, answer: "SQUAT", hint: "Deep bend."),
-                .init(lockedLetter: "Q", lockedPosition: 4, answer: "SQUAD", hint: "Small team.") // override row5->col4
+                .init(lockedLetter: "Q", lockedPosition: 2, answer: "EQUAL", hint: "Same as."),
+                .init(lockedLetter: "Q", lockedPosition: 3, answer: "SQUID", hint: "Ocean creature."),
+                .init(lockedLetter: "Q", lockedPosition: 4, answer: "QUART", hint: "Liquid measure."),
+                .init(lockedLetter: "Q", lockedPosition: 4, answer: "SQUAD", hint: "Small team.")
             ]
         }
         if letter == "U" {
             rows = [
-                .init(lockedLetter: "U", lockedPosition: 1, answer: "ULCER", hint: "Sore."),
-                .init(lockedLetter: "U", lockedPosition: 2, answer: "MUCUS", hint: "Nasal goo."),
+                .init(lockedLetter: "U", lockedPosition: 1, answer: "ULTRA", hint: "Beyond normal."),
+                .init(lockedLetter: "U", lockedPosition: 2, answer: "AUDIO", hint: "Sound."),
                 .init(lockedLetter: "U", lockedPosition: 3, answer: "SAUCE", hint: "Gravy."),
                 .init(lockedLetter: "U", lockedPosition: 4, answer: "THUMB", hint: "Digit."),
-                .init(lockedLetter: "U", lockedPosition: 5, answer: "KUDZU", hint: "Climbing vine.")
+                .init(lockedLetter: "U", lockedPosition: 5, answer: "DATUM", hint: "Data point.")
             ]
         }
         if letter == "W" {
             rows = [
                 .init(lockedLetter: "W", lockedPosition: 1, answer: "WATER", hint: "H2O."),
                 .init(lockedLetter: "W", lockedPosition: 2, answer: "AWAKE", hint: "Not asleep."),
-                .init(lockedLetter: "W", lockedPosition: 3, answer: "BOWEL", hint: "Intestine."),
-                .init(lockedLetter: "W", lockedPosition: 4, answer: "STREW", hint: "Scatter."),
+                .init(lockedLetter: "W", lockedPosition: 3, answer: "BOWER", hint: "Garden shelter."),
+                .init(lockedLetter: "W", lockedPosition: 4, answer: "STRAW", hint: "Sipper."),
                 .init(lockedLetter: "W", lockedPosition: 5, answer: "SCREW", hint: "Fastener.")
             ]
         }
 
-        // Apply per-letter column overrides (visual only — checking enforces this)
         currentRows = rows
         startTimer()
     }
@@ -124,7 +130,7 @@ final class GameCore: ObservableObject {
         elapsed = 0
         startTime = Date()
         timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            guard let self, let start = self.startTime else { return }
+            guard let self = self, let start = self.startTime else { return }
             self.elapsed = Date().timeIntervalSince(start)
         }
     }
@@ -149,6 +155,7 @@ final class GameCore: ObservableObject {
             inputs[i] = text
         }
     }
+    
     func backspace(row i: Int) {
         guard i >= 0 && i < 5 else { return }
         var text = inputs[i]
@@ -160,17 +167,30 @@ final class GameCore: ObservableObject {
 
     // Check one row
     func submit(row i: Int) {
-        guard i >= 0 && i < 5, !levelLocked else { return }
+        guard i >= 0 && i < 5, !levelLocked, i < currentRows.count else { return }
         let row = currentRows[i]
         let letter = currentLetter
         let guess = inputs[i].uppercased()
         let requiredCol = lockedColumn(for: letter, rowIndex: i)
 
-        guard guess.count == 5 else { checks[i] = false; return }
+        guard guess.count == 5 else { 
+            checks[i] = false
+            return 
+        }
+        
+        guard requiredCol >= 1 && requiredCol <= 5 else {
+            checks[i] = false
+            return
+        }
+        
         let idx = guess.index(guess.startIndex, offsetBy: requiredCol - 1)
-        guard guess[idx] == row.lockedLetter else { checks[i] = false; return }
+        guard guess[idx] == Character(row.lockedLetter.uppercased()) else { 
+            checks[i] = false
+            return 
+        }
 
-        checks[i] = (guess == row.answer)
+        checks[i] = (guess == row.answer.uppercased())
+        
         if checks.allSatisfy({ $0 }) {
             stopTimer()
             // Save best time
@@ -206,7 +226,9 @@ final class GameCore: ObservableObject {
 
 // Helpers
 extension Array {
-    subscript(safe i: Int) -> Element? { (indices ~= i) ? self[i] : nil }
+    subscript(safe i: Int) -> Element? { 
+        return (indices ~= i) ? self[i] : nil 
+    }
 }
 
 extension UIApplication {
@@ -214,6 +236,7 @@ extension UIApplication {
         let base = base ?? connectedScenes
             .compactMap { ($0 as? UIWindowScene)?.keyWindow }
             .first?.rootViewController
+        
         if let nav = base as? UINavigationController {
             return topMostViewController(base: nav.visibleViewController)
         }
