@@ -1,11 +1,29 @@
-- name: Show repo tree
-  script: |
-    set -euxo pipefail
-    pwd
-    ls -la
-    echo "Swift files I see:"
-    find . -maxdepth 2 -type f -name "*.swift" -print | sort
-
+workflows:
+  alpha_ios:
+    name: AlphaWord iOS
+    environment:
+      xcode: latest
+    scripts:
+      - name: Show repo tree
+        script: |
+          set -euxo pipefail
+          pwd
+          ls -la
+          echo "Swift files I see:"
+          find . -maxdepth 2 -type f -name "*.swift" -print | sort
+      - name: Install tools + list Swift-like files
+        script: |
+          set -euxo pipefail
+          brew install xcodegen || true
+          echo "Swift-ish files:"
+          find . -maxdepth 2 -type f -iname "*.swift*" -print || true
+      - name: Generate Xcode project & list schemes
+        script: |
+          set -euxo pipefail
+          xcodegen generate
+          echo "--- xcodebuild -list ---"
+          xcodebuild -list -project AlphaWord.xcodeproj || true
+      # ... (rest of your steps unchanged)
 
 workflows:
   alpha_ios:
@@ -81,4 +99,5 @@ workflows:
             -allowProvisioningUpdates
     artifacts:
       - $CM_BUILD_DIR/export/*.ipa
+
 
