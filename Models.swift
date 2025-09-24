@@ -23,6 +23,10 @@ struct RowSpec: Codable, Identifiable, Equatable {
     let lockedPosition: Int              // nominal 1...5 (may be overridden per letter)
     let answer: String                   // uppercase 5 letters
     let hint: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case lockedLetter, lockedPosition, answer, hint
+    }
 }
 
 struct LetterLevel: Codable {
@@ -60,6 +64,7 @@ func lockedColumn(for letter: String, rowIndex: Int) -> Int {
 
 enum WordBank {
     static func rows(for index: Int) -> [RowSpec]? {
+        guard index >= 0 && index < 26 else { return nil }
         let letter = Alpha.letters[index]
         switch letter {
         case "A": return A
@@ -114,7 +119,7 @@ enum WordBank {
     static let C: [RowSpec] = [
         .init(lockedLetter: "C", lockedPosition: 1, answer: "CLOUD", hint: "Sky fluff."),
         .init(lockedLetter: "C", lockedPosition: 2, answer: "ACORN", hint: "Oak seed."),
-        .init(lockedLetter: "C", lockedPosition: 3, answer: "FOCAL", hint: "_____ point."),
+        .init(lockedLetter: "C", lockedPosition: 3, answer: "FOCAL", hint: "Central point."),
         .init(lockedLetter: "C", lockedPosition: 4, answer: "TEACH", hint: "Tutor does this."),
         .init(lockedLetter: "C", lockedPosition: 5, answer: "MIMIC", hint: "Copycat.")
     ]
@@ -159,7 +164,7 @@ enum WordBank {
     static let H: [RowSpec] = [
         .init(lockedLetter: "H", lockedPosition: 1, answer: "HOUSE", hint: "Where you live."),
         .init(lockedLetter: "H", lockedPosition: 2, answer: "AHEAD", hint: "In front."),
-        .init(lockedLetter: "H", lockedPosition: 3, answer: "OCHER", hint: "Earthy pigment (US)."),
+        .init(lockedLetter: "H", lockedPosition: 3, answer: "OTHER", hint: "Different one."),
         .init(lockedLetter: "H", lockedPosition: 4, answer: "NORTH", hint: "Compass point."),
         .init(lockedLetter: "H", lockedPosition: 5, answer: "SMASH", hint: "Break hard.")
     ]
@@ -176,16 +181,16 @@ enum WordBank {
     // J (row5 uses col4 override)
     static let J: [RowSpec] = [
         .init(lockedLetter: "J", lockedPosition: 1, answer: "JELLY", hint: "Wobbly sweet."),
-        .init(lockedLetter: "J", lockedPosition: 2, answer: "AJUGA", hint: "Flowering plant."),
+        .init(lockedLetter: "J", lockedPosition: 2, answer: "ENJOY", hint: "Take pleasure in."),
         .init(lockedLetter: "J", lockedPosition: 3, answer: "MAJOR", hint: "Above minor."),
         .init(lockedLetter: "J", lockedPosition: 4, answer: "NINJA", hint: "Stealthy warrior."),
-        .init(lockedLetter: "J", lockedPosition: 4, answer: "HAJJI", hint: "Pilgrim title.") // override applies
+        .init(lockedLetter: "J", lockedPosition: 4, answer: "BANJO", hint: "String instrument.")
     ]
 
     // K
     static let K: [RowSpec] = [
         .init(lockedLetter: "K", lockedPosition: 1, answer: "KNIFE", hint: "Cutting tool."),
-        .init(lockedLetter: "K", lockedPosition: 2, answer: "AKIND", hint: "Of the same sort."), // archaic-ish; still valid
+        .init(lockedLetter: "K", lockedPosition: 2, answer: "KAYAK", hint: "Paddle boat."),
         .init(lockedLetter: "K", lockedPosition: 3, answer: "SKEIN", hint: "Coil of yarn."),
         .init(lockedLetter: "K", lockedPosition: 4, answer: "BLOKE", hint: "Man (UK)."),
         .init(lockedLetter: "K", lockedPosition: 5, answer: "SMOCK", hint: "Loose garment.")
@@ -222,7 +227,7 @@ enum WordBank {
     static let O: [RowSpec] = [
         .init(lockedLetter: "O", lockedPosition: 1, answer: "OCEAN", hint: "Big blue."),
         .init(lockedLetter: "O", lockedPosition: 2, answer: "BOARD", hint: "Flat plank."),
-        .init(lockedLetter: "O", lockedPosition: 3, answer: "MAJOR", hint: "Above minor."),
+        .init(lockedLetter: "O", lockedPosition: 3, answer: "FOYER", hint: "Entrance hall."),
         .init(lockedLetter: "O", lockedPosition: 4, answer: "PRONE", hint: "Face-down."),
         .init(lockedLetter: "O", lockedPosition: 5, answer: "TANGO", hint: "A dance.")
     ]
@@ -239,18 +244,11 @@ enum WordBank {
     // Q (row5 uses col4 override)
     static let Q: [RowSpec] = [
         .init(lockedLetter: "Q", lockedPosition: 1, answer: "QUILT", hint: "Bed cover."),
-        .init(lockedLetter: "Q", lockedPosition: 2, answer: "AQUID", hint: "—"), // placeholder not great; replaced below
-        .init(lockedLetter: "Q", lockedPosition: 3, answer: "EQUAL", hint: "Same as."),
-        .init(lockedLetter: "Q", lockedPosition: 4, answer: "IQUIT", hint: "I resign."), // stylized phrase; replace
-        .init(lockedLetter: "Q", lockedPosition: 4, answer: "SQUAD", hint: "Small team.") // override row5->col4
+        .init(lockedLetter: "Q", lockedPosition: 2, answer: "EQUAL", hint: "Same as."),
+        .init(lockedLetter: "Q", lockedPosition: 3, answer: "SQUID", hint: "Ocean creature."),
+        .init(lockedLetter: "Q", lockedPosition: 4, answer: "QUART", hint: "Liquid measure."),
+        .init(lockedLetter: "Q", lockedPosition: 4, answer: "SQUAD", hint: "Small team.")
     ]
-    // Replace Q row2 with a proper word "AQEED"? Not good. Let's fix Q properly:
-    // Better Q set:
-    static let Q_fixed: [RowSpec] = [
-        .init(lockedLetter: "Q", lockedPosition: 1, answer: "QUILL", hint: "Feather pen."),
-        .init(lockedLetter: "Q", lockedPosition: 2, answer: "AQEEL", hint: "—"), // still bad; okay, let’s instead use "AQABA" (city), proper noun.
-    ]
-    // To avoid proper nouns/awkwardness, we'll redefine Q cleanly just below in the code update section.
 
     // R
     static let R: [RowSpec] = [
@@ -281,11 +279,11 @@ enum WordBank {
 
     // U
     static let U: [RowSpec] = [
-        .init(lockedLetter: "U", lockedPosition: 1, answer: "UMBRA", hint: "Shadow core."),
+        .init(lockedLetter: "U", lockedPosition: 1, answer: "ULTRA", hint: "Beyond normal."),
         .init(lockedLetter: "U", lockedPosition: 2, answer: "AUDIO", hint: "Sound."),
-        .init(lockedLetter: "U", lockedPosition: 3, answer: "SAUCE", hint: "Gravy/coulis."),
+        .init(lockedLetter: "U", lockedPosition: 3, answer: "SAUCE", hint: "Gravy."),
         .init(lockedLetter: "U", lockedPosition: 4, answer: "THUMB", hint: "Short, thick digit."),
-        .init(lockedLetter: "U", lockedPosition: 5, answer: "KARAU", hint: "—") // bad; will fix below
+        .init(lockedLetter: "U", lockedPosition: 5, answer: "DATUM", hint: "Data point.")
     ]
 
     // V
@@ -300,8 +298,8 @@ enum WordBank {
     // W
     static let W: [RowSpec] = [
         .init(lockedLetter: "W", lockedPosition: 1, answer: "WATER", hint: "H2O."),
-        .init(lockedLetter: "W", lockedPosition: 2, answer: "TWOER", hint: "—"), // not great; fix
-        .init(lockedLetter: "W", lockedPosition: 3, answer: "BOWEL", hint: "Intestine."),
+        .init(lockedLetter: "W", lockedPosition: 2, answer: "AWAKE", hint: "Not asleep."),
+        .init(lockedLetter: "W", lockedPosition: 3, answer: "BOWER", hint: "Garden shelter."),
         .init(lockedLetter: "W", lockedPosition: 4, answer: "STRAW", hint: "Sipper."),
         .init(lockedLetter: "W", lockedPosition: 5, answer: "SCREW", hint: "Threaded fastener.")
     ]
@@ -312,7 +310,7 @@ enum WordBank {
         .init(lockedLetter: "X", lockedPosition: 2, answer: "AXIOM", hint: "Self-evident truth."),
         .init(lockedLetter: "X", lockedPosition: 3, answer: "PIXEL", hint: "Screen dot."),
         .init(lockedLetter: "X", lockedPosition: 4, answer: "INDEX", hint: "Back-of-book list."),
-        .init(lockedLetter: "X", lockedPosition: 4, answer: "SIXTY", hint: "Number 60.") // override applies
+        .init(lockedLetter: "X", lockedPosition: 4, answer: "SIXTY", hint: "Number 60.")
     ]
 
     // Y
@@ -330,6 +328,6 @@ enum WordBank {
         .init(lockedLetter: "Z", lockedPosition: 2, answer: "OZONE", hint: "O3 layer."),
         .init(lockedLetter: "Z", lockedPosition: 3, answer: "AZURE", hint: "Sky blue."),
         .init(lockedLetter: "Z", lockedPosition: 4, answer: "FIZZY", hint: "Bubbly."),
-        .init(lockedLetter: "Z", lockedPosition: 4, answer: "PIZZA", hint: "Cheesy slice.") // override applies
+        .init(lockedLetter: "Z", lockedPosition: 4, answer: "PIZZA", hint: "Cheesy slice.")
     ]
 }
