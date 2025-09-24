@@ -1,18 +1,13 @@
 name: AlphaWord
 options:
   developmentLanguage: en
-
 targets:
   AlphaWord:
     type: application
     platform: iOS
     deploymentTarget: "15.0"
-
-    # Compile everything under the repo root
     sources:
-      - path: .
-
-    # Inline Info.plist so we don't rely on a file
+      - path: .         # <— ALWAYS exists; no includes/excludes to avoid “Nothing found”
     info:
       properties:
         CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
@@ -20,7 +15,6 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
         UILaunchScreen: {}
-
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID)
@@ -28,7 +22,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         SWIFT_VERSION: 5.0
         IPHONEOS_DEPLOYMENT_TARGET: 15.0
-
 schemes:
   AlphaWord:
     build:
