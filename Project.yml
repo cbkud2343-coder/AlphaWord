@@ -15,8 +15,14 @@ targets:
           - project.yml
           - codemagic.yaml
           - README.md
+    # Inline Info.plist (no file on disk)
     info:
-      path: Info.plist
+      properties:
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleName: AlphaWord
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID)
@@ -31,4 +37,3 @@ schemes:
         AlphaWord: all
     run:
       config: Release
-
