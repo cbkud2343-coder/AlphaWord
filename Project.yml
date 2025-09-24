@@ -18,6 +18,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.abdulla.alphaword
+        DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM_ID}
+        CODE_SIGN_STYLE: Automatic
+
         SWIFT_VERSION: 5.0
         IPHONEOS_DEPLOYMENT_TARGET: 15.0
         TARGETED_DEVICE_FAMILY: 1
@@ -31,3 +34,4 @@ schemes:
         AlphaWord: all
     run:
       config: Release
+
