@@ -1,3 +1,12 @@
+- name: Show repo tree
+  script: |
+    set -euxo pipefail
+    pwd
+    ls -la
+    echo "Swift files I see:"
+    find . -maxdepth 2 -type f -name "*.swift" -print | sort
+
+
 workflows:
   alpha_ios:
     name: AlphaWord iOS
@@ -72,3 +81,4 @@ workflows:
             -allowProvisioningUpdates
     artifacts:
       - $CM_BUILD_DIR/export/*.ipa
+
