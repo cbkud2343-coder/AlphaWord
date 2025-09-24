@@ -10,22 +10,19 @@ workflows:
           pwd
           ls -la
           echo "Swift files:"
-          find . -maxdepth 3 -type f -name "*.swift" -print | sort
-          echo "project.yml preview:"
-          sed -n '1,120p' project.yml
+          find . -maxdepth 3 -type f -name "*.swift" -print | sort || true
+          echo "project.yml:"
+          sed -n '1,160p' project.yml || true
 
       - name: Install XcodeGen & generate project
-  script: |
-    set -euxo pipefail
-    echo "== project.yml =="
-    sed -n '1,160p' project.yml
-    brew install xcodegen || true
-    xcodegen generate
-    echo "--- xcodebuild -list ---"
-    xcodebuild -list -project AlphaWord.xcodeproj
+        script: |
+          set -euxo pipefail
+          brew install xcodegen || true
+          xcodegen generate
+          echo "--- xcodebuild -list ---"
+          xcodebuild -list -project AlphaWord.xcodeproj
 
-
-      - name: Compile for Simulator (sanity)
+      - name: Compile for Simulator
         script: |
           set -euxo pipefail
           xcodebuild \
@@ -73,4 +70,3 @@ workflows:
             -allowProvisioningUpdates
     artifacts:
       - $CM_BUILD_DIR/export/*.ipa
-
