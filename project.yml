@@ -7,7 +7,7 @@ targets:
     platform: iOS
     deploymentTarget: "15.0"
     sources:
-      - path: .         # <— ALWAYS exists; no includes/excludes to avoid “Nothing found”
+      - path: App
     info:
       properties:
         CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
