@@ -7,13 +7,8 @@ targets:
     platform: iOS
     deploymentTarget: "15.0"
     sources:
-      - path: .
-        excludes:
-          - project.yml
-          - codemagic.yaml
-          - README.md
-          - "**/*.swift.txt"   # ignore any txt files
-    # Inline Info.plist (no file on disk)
+      - path: AlphaWordApp.swift
+      - path: MainMenuView.swift
     info:
       properties:
         CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
