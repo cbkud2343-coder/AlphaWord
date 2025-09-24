@@ -31,3 +31,4 @@ schemes:
         AlphaWord: all
     run:
       config: Release
+
