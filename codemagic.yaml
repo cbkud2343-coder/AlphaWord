@@ -4,39 +4,55 @@ workflows:
     environment:
       xcode: latest
     scripts:
-      - name: Diagnostics & install XcodeGen
+      - name: Install tools + show file list
         script: |
           set -euxo pipefail
           brew install xcodegen || true
-          echo "Root:"
-          pwd; ls -la
-      - name: Generate Xcode project & list schemes
+          echo "List Swift-like files (to catch .swift.txt):"
+          find . -maxdepth 2 -type f -iname "*.swift*" -print || true
+      - name: Generate Xcode project & detect scheme
         script: |
           set -euxo pipefail
           xcodegen generate
-          echo "Project files:"; ls -la
-          xcodebuild -list -project AlphaWord.xcodeproj
+          echo "--- xcodebuild -list ---"
+          xcodebuild -list -project AlphaWord.xcodeproj || true
+          # Detect first scheme name automatically
+          SCHEME="$(xcodebuild -list -project AlphaWord.xcodeproj | awk '/Schemes:/{flag=1;next} flag && NF{print; exit}')"
+          echo "Detected scheme: $SCHEME"
+          if [ -z "$SCHEME" ]; then
+            echo "No scheme detected. Failing early."; exit 2
+          fi
+          echo "$SCHEME" > $CM_BUILD_DIR/.scheme
+      - name: Validate Info.plist
+        script: |
+          set -euxo pipefail
+          test -f Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Info.plist || true
+          plutil -lint Info.plist
       - name: Compile for Simulator (catch code errors fast)
         script: |
           set -euxo pipefail
+          SCHEME="$(cat $CM_BUILD_DIR/.scheme)"
           xcodebuild \
             -project AlphaWord.xcodeproj \
-            -scheme "AlphaWord" \
+            -scheme "$SCHEME" \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'platform=iOS Simulator,OS=latest,name=iPhone 14' \
+            PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID:-com.abdulla.alphaword.dev}" \
             build
       - name: Archive (with auto-provisioning)
         script: |
           set -euxo pipefail
+          SCHEME="$(cat $CM_BUILD_DIR/.scheme)"
           xcodebuild \
             -project AlphaWord.xcodeproj \
-            -scheme "AlphaWord" \
+            -scheme "$SCHEME" \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath $CM_BUILD_DIR/AlphaWord.xcarchive \
             -allowProvisioningUpdates \
-            DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM_ID}" \
-            PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}" \
+            DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM_ID:-9M8ARAXQRV}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID:-com.abdulla.alphaword.dev}" \
             CODE_SIGN_STYLE=Automatic \
             SDKROOT=iphoneos \
             archive
