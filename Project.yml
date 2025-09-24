@@ -8,6 +8,9 @@ targets:
     deploymentTarget: "15.0"
     sources:
       - path: .
+        include:
+          - AlphaWordApp.swift
+          - MainMenuView.swift
         excludes:
           - project.yml
           - codemagic.yaml
