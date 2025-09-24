@@ -8,13 +8,11 @@ targets:
     deploymentTarget: "15.0"
     sources:
       - path: .
-        include:
-          - AlphaWordApp.swift
-          - MainMenuView.swift
         excludes:
           - project.yml
           - codemagic.yaml
           - README.md
+          - "**/*.swift.txt"   # ignore any txt files
     # Inline Info.plist (no file on disk)
     info:
       properties:
