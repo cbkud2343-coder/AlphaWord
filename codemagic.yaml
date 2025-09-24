@@ -7,19 +7,24 @@ workflows:
       - name: Diagnostics & install XcodeGen
         script: |
           set -euxo pipefail
-          echo "Repo root:"
-          pwd
-          ls -la
-          if ! command -v xcodegen >/dev/null 2>&1; then
-            brew install xcodegen
-          fi
+          brew install xcodegen || true
+          echo "Root:"
+          pwd; ls -la
       - name: Generate Xcode project & list schemes
         script: |
           set -euxo pipefail
           xcodegen generate
-          echo "Project files:"
-          ls -la
+          echo "Project files:"; ls -la
           xcodebuild -list -project AlphaWord.xcodeproj
+      - name: Compile for Simulator (catch code errors fast)
+        script: |
+          set -euxo pipefail
+          xcodebuild \
+            -project AlphaWord.xcodeproj \
+            -scheme "AlphaWord" \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            build
       - name: Archive (with auto-provisioning)
         script: |
           set -euxo pipefail
