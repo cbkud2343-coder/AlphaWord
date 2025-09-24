@@ -1,0 +1,33 @@
+name: AlphaWord
+options:
+  developmentLanguage: en
+  bundleIdPrefix: com.abdulla
+targets:
+  AlphaWord:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: .
+        excludes:
+          - project.yml
+          - codemagic.yaml
+          - Info.plist
+    info:
+      path: Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.abdulla.alphaword
+        SWIFT_VERSION: 5.0
+        IPHONEOS_DEPLOYMENT_TARGET: 15.0
+        TARGETED_DEVICE_FAMILY: 1
+        SYSTEM_CAPABILITIES:
+          com.apple.GameCenter:
+            enabled: 1
+schemes:
+  AlphaWord:
+    build:
+      targets:
+        AlphaWord: all
+    run:
+      config: Release
