@@ -1,22 +1,11 @@
 workflows:
-  alpha_ios:
-    name: AlphaWord iOS
-    max_build_duration: 60
+  alpha_ios_test:
+    name: AlphaWord iOS Test Build
+    max_build_duration: 30
     instance_type: mac_mini_m1
     environment:
-      ios_signing:
-        distribution_type: development
-        bundle_identifier: com.abdulla.alphaword
       xcode: latest
-      cocoapods: default
-    cache:
-      cache_paths:
-        - ~/.cocoapods
     scripts:
-      - name: Set up keychain to be used for code signing
-        script: |
-          keychain initialize
-          
       - name: Install XcodeGen
         script: |
           brew install xcodegen
@@ -25,23 +14,14 @@ workflows:
         script: |
           xcodegen generate
           
-      - name: Set up code signing settings on Xcode project
+      - name: Build for iOS Simulator
         script: |
-          xcode-project use-profiles
-          
-      - name: Build ipa for distribution
-        script: |
-          xcode-project build-ipa \
-            --workspace "AlphaWord.xcworkspace" \
-            --scheme "AlphaWord" \
-            --config "Release"
+          xcodebuild -project AlphaWord.xcodeproj \
+            -scheme AlphaWord \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            clean build \
+            CODE_SIGNING_ALLOWED=NO
             
     artifacts:
-      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-    publishing:
-      email:
-        recipients:
-          - user@example.com
