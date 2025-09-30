@@ -1,0 +1,36 @@
+workflows:
+  ios_build:
+    name: iOS Build (XcodeGen)
+    environment:
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: '*'
+          include: true
+          source: true
+    scripts:
+      - name: Show working directory
+        script: |
+          pwd
+          ls -la
+      - name: Install XcodeGen & generate project
+        script: |
+          brew update
+          brew install xcodegen || brew upgrade xcodegen
+          xcodegen --spec project.yml generate
+          ls -la
+      - name: Build (no code signing)
+        script: |
+          xcodebuild \
+            -project AlphaWord.xcodeproj \
+            -scheme AlphaWord \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+    artifacts:
+      - ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphoneos/*.app
+      - ~/Library/Developer/Xcode/DerivedData/**/Build/**/*.xcarchive
