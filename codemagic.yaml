@@ -55,25 +55,24 @@ workflows:
           echo "PROJECT_PATH=${PROJ}" >> "$CM_ENV"
 
       - name: Build (simulator, generic destination)
-  script: |
-    set -euxo pipefail
-    source "$CM_ENV" || true
-    if [ -z "${PROJECT_PATH:-}" ]; then
-      echo "ERROR: PROJECT_PATH not set"
-      exit 1
-    fi
-    PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
-    cd "${PROJ_DIR}"
+        script: |
+          set -euxo pipefail
+          source "$CM_ENV" || true
+          if [ -z "${PROJECT_PATH:-}" ]; then
+            echo "ERROR: PROJECT_PATH not set"
+            exit 1
+          fi
+          PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
+          cd "${PROJ_DIR}"
 
-    # Clean + build for iOS Simulator to clear any stale objects
-    xcodebuild \
-      -project "${PROJECT_PATH}" \
-      -scheme AlphaWord \
-      -configuration Release \
-      -sdk iphonesimulator \
-      -destination 'generic/platform=iOS Simulator' \
-      clean build
-
+          # Clean + build for iOS Simulator to clear any stale objects
+          xcodebuild \
+            -project "${PROJECT_PATH}" \
+            -scheme AlphaWord \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            clean build
 
     artifacts:
       - ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphonesimulator/*.app
