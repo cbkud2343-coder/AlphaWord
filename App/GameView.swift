@@ -74,16 +74,17 @@ struct GameView: View {
         }
         .task { await tickTimer() }
         .navigationBarBackButtonHidden(true)
+        // iOS 15 toolbar placement
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .navigationBarLeading) {
                 Button("Quit") { endGame() }
             }
         }
+        // Plain .sheet (no .presentationDetents, which is iOS 16+)
         .sheet(isPresented: $showSummary) {
             SummaryView(score: score) {
                 dismiss()
             }
-            .presentationDetents([.fraction(0.35), .medium])
         }
     }
 
@@ -237,7 +238,7 @@ You have **60 seconds** to score as much as possible across 5 rounds. Good luck!
             }
             .padding(20)
         }
-        .navigationTitle("How to Play")
+        .navigationBarTitle("How to Play", displayMode: .inline)
     }
 }
 
@@ -250,7 +251,7 @@ struct SettingsView: View {
                 ResetHighScoreView()
             }
         }
-        .navigationTitle("Settings")
+        .navigationBarTitle("Settings", displayMode: .inline)
     }
 }
 
