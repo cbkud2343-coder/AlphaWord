@@ -1,6 +1,6 @@
 workflows:
   ios_build:
-    name: iOS Build (XcodeGen)
+    name: iOS Build (XcodeGen - robust)
     environment:
       xcode: latest
       cocoapods: default
@@ -14,23 +14,64 @@ workflows:
     scripts:
       - name: Show working directory
         script: |
-          pwd
+          set -euxo pipefail
+          echo "PWD=$(pwd)"
           ls -la
+          echo "Searching for project.yml / project.yaml ..."
+          find . -maxdepth 5 -type f \( -name "project.yml" -o -name "project.yaml" \) -print || true
+
       - name: Install XcodeGen & generate project
         script: |
-          brew update
+          set -euxo pipefail
           brew install xcodegen || brew upgrade xcodegen
-          xcodegen --spec project.yml generate
+
+          # Locate the XcodeGen spec anywhere in the repo
+          SPEC="$(find . -maxdepth 8 -type f \( -name "project.yml" -o -name "project.yaml" \) | head -n1 || true)"
+          if [ -z "${SPEC}" ]; then
+            echo "ERROR: Could not find project.yml or project.yaml"
+            exit 1
+          fi
+          echo "Found spec: ${SPEC}"
+
+          SPEC_DIR="$(cd "$(dirname "${SPEC}")" && pwd)"
+          cd "${SPEC_DIR}"
+
+          # Generate the Xcode project
+          xcodegen --spec "$(basename "${SPEC}")" generate
+
+          echo "After generation:"
           ls -la
+
+          # Verify .xcodeproj exists
+          PROJ="$(find . -maxdepth 2 -type d -name "*.xcodeproj" | head -n1 || true)"
+          if [ -z "${PROJ}" ]; then
+            echo "ERROR: AlphaWord.xcodeproj was not generated."
+            exit 1
+          fi
+          echo "Using project: ${PROJ}"
+
+          # Save for the next step
+          echo "PROJECT_PATH=${PROJ}" >> $CM_ENV
+
       - name: Build (no code signing)
         script: |
+          set -euxo pipefail
+          source "$CM_ENV" || true
+          if [ -z "${PROJECT_PATH:-}" ]; then
+            echo "ERROR: PROJECT_PATH not set"
+            exit 1
+          fi
+          PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
+          cd "${PROJ_DIR}"
+
           xcodebuild \
-            -project AlphaWord.xcodeproj \
+            -project "${PROJECT_PATH}" \
             -scheme AlphaWord \
             -configuration Release \
             -sdk iphoneos \
             CODE_SIGNING_ALLOWED=NO \
             build
+
     artifacts:
       - ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphoneos/*.app
       - ~/Library/Developer/Xcode/DerivedData/**/Build/**/*.xcarchive
