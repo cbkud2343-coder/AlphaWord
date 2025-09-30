@@ -48,21 +48,22 @@ echo "PROJECT_PATH=${PROJ}" >> "$CM_ENV"
       - name: Build (no code signing)
         script: |
           set -euxo pipefail
-          source "$CM_ENV" || true
-          if [ -z "${PROJECT_PATH:-}" ]; then
-            echo "ERROR: PROJECT_PATH not set"
-            exit 1
-          fi
-          PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
-          cd "${PROJ_DIR}"
+source "$CM_ENV" || true
+if [ -z "${PROJECT_PATH:-}" ]; then
+  echo "ERROR: PROJECT_PATH not set"
+  exit 1
+fi
+PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
+cd "${PROJ_DIR}"
 
-          xcodebuild \
-            -project "${PROJECT_PATH}" \
-            -scheme AlphaWord \
-            -configuration Release \
-            -sdk iphoneos \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+xcodebuild \
+  -project "${PROJECT_PATH}" \
+  -scheme AlphaWord \
+  -configuration Release \
+  -sdk iphoneos \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+
 
     artifacts:
       - ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphoneos/*.app
