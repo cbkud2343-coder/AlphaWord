@@ -15,55 +15,63 @@ workflows:
       - name: Show working directory
         script: |
           set -euxo pipefail
-brew install xcodegen || brew upgrade xcodegen
+          echo "PWD=$(pwd)"
+          ls -la
+          echo "Searching for project.yml / project.yaml ..."
+          find . -maxdepth 5 -type f \( -name "project.yml" -o -name "project.yaml" \) -print || true
 
-# Find the spec anywhere in the repo
-SPEC="$(find . -maxdepth 8 -type f \( -name "project.yml" -o -name "project.yaml" \) | head -n1 || true)"
-if [ -z "${SPEC}" ]; then
-  echo "ERROR: Could not find project.yml or project.yaml"
-  exit 1
-fi
-echo "Found spec: ${SPEC}"
+      - name: Install XcodeGen & generate project
+        script: |
+          set -euxo pipefail
+          brew install xcodegen || brew upgrade xcodegen
 
-SPEC_DIR="$(cd "$(dirname "${SPEC}")" && pwd)"
-SPEC_BASENAME="$(basename "${SPEC}")"
-cd "${SPEC_DIR}"
+          # Find the spec anywhere in the repo
+          SPEC="$(find . -maxdepth 8 -type f \( -name "project.yml" -o -name "project.yaml" \) | head -n1 || true)"
+          if [ -z "${SPEC}" ]; then
+            echo "ERROR: Could not find project.yml or project.yaml"
+            exit 1
+          fi
+          echo "Found spec: ${SPEC}"
 
-# ✅ Correct command order
-xcodegen generate --spec "${SPEC_BASENAME}"
+          SPEC_DIR="$(cd "$(dirname "${SPEC}")" && pwd)"
+          SPEC_BASENAME="$(basename "${SPEC}")"
+          cd "${SPEC_DIR}"
 
-echo "After generation:"
-ls -la
+          # Generate (correct CLI order) — add --use-cache if you like
+          xcodegen generate --spec "${SPEC_BASENAME}"
 
-# Verify .xcodeproj exists
-PROJ="$(find . -maxdepth 2 -type d -name "*.xcodeproj" | head -n1 || true)"
-if [ -z "${PROJ}" ]; then
-  echo "ERROR: .xcodeproj was not generated."
-  exit 1
-fi
-echo "Using project: ${PROJ}"
+          echo "After generation:"
+          ls -la
 
-# Export for next step
-echo "PROJECT_PATH=${PROJ}" >> "$CM_ENV"
+          # Verify .xcodeproj exists
+          PROJ="$(find . -maxdepth 2 -type d -name "*.xcodeproj" | head -n1 || true)"
+          if [ -z "${PROJ}" ]; then
+            echo "ERROR: .xcodeproj was not generated."
+            exit 1
+          fi
+          echo "Using project: ${PROJ}"
+
+          # Export for next step
+          echo "PROJECT_PATH=${PROJ}" >> "$CM_ENV"
+
       - name: Build (no code signing)
         script: |
           set -euxo pipefail
-source "$CM_ENV" || true
-if [ -z "${PROJECT_PATH:-}" ]; then
-  echo "ERROR: PROJECT_PATH not set"
-  exit 1
-fi
-PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
-cd "${PROJ_DIR}"
+          source "$CM_ENV" || true
+          if [ -z "${PROJECT_PATH:-}" ]; then
+            echo "ERROR: PROJECT_PATH not set"
+            exit 1
+          fi
+          PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
+          cd "${PROJ_DIR}"
 
-xcodebuild \
-  -project "${PROJECT_PATH}" \
-  -scheme AlphaWord \
-  -configuration Release \
-  -sdk iphoneos \
-  CODE_SIGNING_ALLOWED=NO \
-  build
-
+          xcodebuild \
+            -project "${PROJECT_PATH}" \
+            -scheme AlphaWord \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            build
 
     artifacts:
       - ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphoneos/*.app
