@@ -74,12 +74,12 @@ struct GameView: View {
         }
         .task { await tickTimer() }
         .navigationBarBackButtonHidden(true)
-        // iOS 15 toolbar placement
-        .toolbar {
+        // iOS 15: make the toolbar overload explicit to avoid ambiguity
+        .toolbar(content: {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Quit") { endGame() }
             }
-        }
+        })
         // Plain .sheet (no .presentationDetents, which is iOS 16+)
         .sheet(isPresented: $showSummary) {
             SummaryView(score: score) {
