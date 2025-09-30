@@ -2,7 +2,8 @@ import SwiftUI
 
 struct MainMenuView: View {
     var body: some View {
-        NavigationStack {
+        // iOS 15 compatible (use NavigationView, not NavigationStack)
+        NavigationView {
             VStack(spacing: 24) {
                 Text("AlphaWord")
                     .font(.largeTitle).bold()
@@ -43,6 +44,7 @@ struct MainMenuView: View {
                 Spacer()
             }
             .padding(24)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
