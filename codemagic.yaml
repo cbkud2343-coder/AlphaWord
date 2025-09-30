@@ -18,80 +18,61 @@ workflows:
           echo "PWD=$(pwd)"
           ls -la
           echo "Searching for project.yml / project.yaml ..."
-          find . -maxdepth 4 -type f \( -name "project.yml" -o -name "project.yaml" \) -print || true
-      
+          find . -maxdepth 5 -type f \( -name "project.yml" -o -name "project.yaml" \) -print || true
+
       - name: Install XcodeGen & generate project
         script: |
           set -euxo pipefail
           brew install xcodegen || brew upgrade xcodegen
-          
+
           # Find the spec anywhere in the repo
-          SPEC="$(find . -maxdepth 4 -type f \( -name "project.yml" -o -name "project.yaml" \) | head -n1 || true)"
+          SPEC="$(find . -maxdepth 8 -type f \( -name "project.yml" -o -name "project.yaml" \) | head -n1 || true)"
           if [ -z "${SPEC}" ]; then
             echo "ERROR: Could not find project.yml or project.yaml"
             exit 1
           fi
-          
           echo "Found spec: ${SPEC}"
+
           SPEC_DIR="$(cd "$(dirname "${SPEC}")" && pwd)"
           SPEC_BASENAME="$(basename "${SPEC}")"
           cd "${SPEC_DIR}"
-          
-          # Generate project
+
+          # Generate (correct CLI order) — add --use-cache if you like
           xcodegen generate --spec "${SPEC_BASENAME}"
-          
+
           echo "After generation:"
           ls -la
-          
+
           # Verify .xcodeproj exists
           PROJ="$(find . -maxdepth 2 -type d -name "*.xcodeproj" | head -n1 || true)"
           if [ -z "${PROJ}" ]; then
             echo "ERROR: .xcodeproj was not generated."
             exit 1
           fi
-          
           echo "Using project: ${PROJ}"
-          
+
           # Export for next step
           echo "PROJECT_PATH=${PROJ}" >> "$CM_ENV"
-          echo "SPEC_DIR=${SPEC_DIR}" >> "$CM_ENV"
-      
+
       - name: Build (no code signing)
         script: |
           set -euxo pipefail
-          
-          # Source environment variables
-          if [ -f "$CM_ENV" ]; then
-            source "$CM_ENV"
-          fi
-          
+          source "$CM_ENV" || true
           if [ -z "${PROJECT_PATH:-}" ]; then
             echo "ERROR: PROJECT_PATH not set"
             exit 1
           fi
-          
-          # Navigate to project directory
-          cd "${SPEC_DIR}"
-          
-          # Set explicit build directory
-          BUILD_DIR="$CM_BUILD_DIR/build"
-          
-          # Build the project
+          PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
+          cd "${PROJ_DIR}"
+
           xcodebuild \
             -project "${PROJECT_PATH}" \
             -scheme AlphaWord \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath "$BUILD_DIR" \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
             build
-          
-          echo "Build completed successfully"
-          echo "Build artifacts location:"
-          find "$BUILD_DIR" -name "*.app" -type d
-    
+
     artifacts:
-      - $CM_BUILD_DIR/build/Build/Products/Release-iphoneos/*.app
-      - $CM_BUILD_DIR/build/Build/Products/Release-iphoneos/**/*.dSYM
+      - ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphoneos/*.app
+      - ~/Library/Developer/Xcode/DerivedData/**/Build/**/*.xcarchive
