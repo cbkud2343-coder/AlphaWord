@@ -9,6 +9,8 @@ struct GameView: View {
     @State private var secondsLeft: Int = 60
     @State private var round: Int = 1
     @State private var isRunning: Bool = true
+    @State private var showSummary: Bool = false
+
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
 
@@ -18,13 +20,12 @@ struct GameView: View {
     var body: some View {
         VStack(spacing: 16) {
             header
-
             Spacer(minLength: 8)
 
             Text("Round \(round) / \(maxRounds)")
                 .font(.headline)
 
-            // Target spaces
+            // Target slots
             HStack(spacing: 8) {
                 ForEach(0..<currentWord.count, id: \.self) { i in
                     let letter: String = i < guess.count ? String(guess[i]) : ""
@@ -78,52 +79,45 @@ struct GameView: View {
                 Button("Quit") { endGame() }
             }
         }
+        .sheet(isPresented: $showSummary) {
+            SummaryView(score: score) {
+                dismiss()
+            }
+            .presentationDetents([.fraction(0.35), .medium])
+        }
     }
 
     // MARK: - Subviews
     private var header: some View {
         HStack {
-            Label("\(secondsLeft)s", systemImage: "timer")
-                .font(.headline)
+            Label("\(secondsLeft)s", systemImage: "timer").font(.headline)
             Spacer()
-            Label("\(score)", systemImage: "star.fill")
-                .font(.headline)
+            Label("\(score)", systemImage: "star.fill").font(.headline)
         }
     }
 
     private var controls: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                Button {
-                    backspace()
-                } label: {
-                    Label("Back", systemImage: "delete.left")
-                        .frame(maxWidth: .infinity)
+                Button { backspace() } label: {
+                    Label("Back", systemImage: "delete.left").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
 
-                Button {
-                    shuffleTiles()
-                } label: {
-                    Label("Shuffle", systemImage: "arrow.triangle.2.circlepath")
-                        .frame(maxWidth: .infinity)
+                Button { shuffleTiles() } label: {
+                    Label("Shuffle", systemImage: "arrow.triangle.2.circlepath").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
 
-                Button {
-                    submitGuess()
-                } label: {
-                    Label("Submit", systemImage: "checkmark.circle.fill")
-                        .frame(maxWidth: .infinity)
+                Button { submitGuess() } label: {
+                    Label("Submit", systemImage: "checkmark.circle.fill").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(guess.count != currentWord.count || !isRunning)
             }
 
             if !isRunning && secondsLeft > 0 {
-                Button {
-                    isRunning = true
-                } label: {
+                Button { isRunning = true } label: {
                     Label("Resume", systemImage: "play.fill").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -182,27 +176,13 @@ struct GameView: View {
             return
         }
         round += 1
-        let word = WordBank.randomWord()
-        resetRound(word: word)
+        resetRound(word: WordBank.randomWord())
     }
 
     private func endGame() {
         isRunning = false
         HighScores.shared.register(score: score)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            showSummary()
-        }
-    }
-
-    private func showSummary() {
-        let final = score
-        let vc = UIHostingController(rootView: SummaryView(score: final, onDone: {
-            dismiss()
-        }))
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.keyWindow?.rootViewController?
-            .present(vc, animated: true)
+        showSummary = true
     }
 
     private func tickSleep() async {
@@ -215,16 +195,8 @@ struct GameView: View {
             await tickSleep()
             if !isRunning { continue }
             secondsLeft -= 1
-            if secondsLeft == 0 {
-                endGame()
-            }
+            if secondsLeft == 0 { endGame() }
         }
-    }
-}
-
-private extension UIWindowScene {
-    var keyWindow: UIWindow? {
-        return self.windows.first(where: { $0.isKeyWindow })
     }
 }
 
@@ -291,10 +263,8 @@ struct ResetHighScoreView: View {
             HStack {
                 Button("Cancel") { }
                     .buttonStyle(.bordered)
-                Button("Reset") {
-                    HighScores.shared.reset()
-                }
-                .buttonStyle(.borderedProminent)
+                Button("Reset") { HighScores.shared.reset() }
+                    .buttonStyle(.borderedProminent)
             }
         }
         .padding(20)
@@ -306,30 +276,20 @@ enum WordBank {
         "SWIFT","APPLE","CODE","DEBUG","MOBILE",
         "STACK","CLICK","BUILD","XCODE","ALPHA"
     ]
-
-    static func randomWord() -> String {
-        words.randomElement() ?? "SWIFT"
-    }
+    static func randomWord() -> String { words.randomElement() ?? "SWIFT" }
 }
 
 final class HighScores {
     static let shared = HighScores()
     private let bestKey = "AlphaWord.bestScore"
     private init() {}
-
     var bestScore: Int? {
         let s = UserDefaults.standard.integer(forKey: bestKey)
         return s == 0 ? nil : s
     }
-
     func register(score: Int) {
         let prev = bestScore ?? 0
-        if score > prev {
-            UserDefaults.standard.set(score, forKey: bestKey)
-        }
+        if score > prev { UserDefaults.standard.set(score, forKey: bestKey) }
     }
-
-    func reset() {
-        UserDefaults.standard.removeObject(forKey: bestKey)
-    }
+    func reset() { UserDefaults.standard.removeObject(forKey: bestKey) }
 }
