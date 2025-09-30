@@ -37,7 +37,7 @@ workflows:
           SPEC_BASENAME="$(basename "${SPEC}")"
           cd "${SPEC_DIR}"
 
-          # Generate (correct CLI order) — add --use-cache if you like
+          # Generate (correct CLI order)
           xcodegen generate --spec "${SPEC_BASENAME}"
 
           echo "After generation:"
@@ -54,25 +54,25 @@ workflows:
           # Export for next step
           echo "PROJECT_PATH=${PROJ}" >> "$CM_ENV"
 
-     - name: Build (simulator, generic destination)
-  script: |
-    set -euxo pipefail
-    source "$CM_ENV" || true
-    if [ -z "${PROJECT_PATH:-}" ]; then
-      echo "ERROR: PROJECT_PATH not set"
-      exit 1
-    fi
-    PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
-    cd "${PROJ_DIR}"
+      - name: Build (simulator, generic destination)
+        script: |
+          set -euxo pipefail
+          source "$CM_ENV" || true
+          if [ -z "${PROJECT_PATH:-}" ]; then
+            echo "ERROR: PROJECT_PATH not set"
+            exit 1
+          fi
+          PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
+          cd "${PROJ_DIR}"
 
-    xcodebuild \
-      -project "${PROJECT_PATH}" \
-      -scheme AlphaWord \
-      -configuration Release \
-      -sdk iphonesimulator \
-      -destination 'generic/platform=iOS Simulator' \
-      build
-
+          # Build for iOS Simulator without picking a specific device
+          xcodebuild \
+            -project "${PROJECT_PATH}" \
+            -scheme AlphaWord \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            build
 
     artifacts:
       - ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphonesimulator/*.app
