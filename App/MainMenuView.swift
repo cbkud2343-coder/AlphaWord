@@ -1,28 +1,48 @@
-//
-//  MainMenuView.swift
-//  AlphaWord
-//
-//  A minimal starter screen so the project builds cleanly.
-//
-
 import SwiftUI
 
 struct MainMenuView: View {
     var body: some View {
-        NavigationView {
-            VStack(spacing: 16) {
+        NavigationStack {
+            VStack(spacing: 24) {
                 Text("AlphaWord")
                     .font(.largeTitle).bold()
-                Text("SwiftUI Starter")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                NavigationLink("Start Game") {
-                    Text("Game Screen Placeholder")
-                        .font(.title)
+                Text("Fast, simple word challenge")
+                    .foregroundStyle(.secondary)
+
+                NavigationLink {
+                    GameView()
+                } label: {
+                    Label("Play", systemImage: "play.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+
+                NavigationLink {
+                    HowToPlayView()
+                } label: {
+                    Label("How to Play", systemImage: "questionmark.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                if let best = HighScores.shared.bestScore {
+                    Text("Best: \(best) pts")
+                        .font(.subheadline)
+                        .padding(.top, 8)
+                }
+
+                Spacer()
             }
-            .padding()
+            .padding(24)
         }
     }
 }
