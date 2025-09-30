@@ -54,25 +54,25 @@ workflows:
           # Export for next step
           echo "PROJECT_PATH=${PROJ}" >> "$CM_ENV"
 
-      - name: Build (simulator, no signing needed)
-        script: |
-          set -euxo pipefail
-          source "$CM_ENV" || true
-          if [ -z "${PROJECT_PATH:-}" ]; then
-            echo "ERROR: PROJECT_PATH not set"
-            exit 1
-          fi
-          PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
-          cd "${PROJ_DIR}"
+     - name: Build (simulator, generic destination)
+  script: |
+    set -euxo pipefail
+    source "$CM_ENV" || true
+    if [ -z "${PROJECT_PATH:-}" ]; then
+      echo "ERROR: PROJECT_PATH not set"
+      exit 1
+    fi
+    PROJ_DIR="$(cd "$(dirname "${PROJECT_PATH}")" && pwd)"
+    cd "${PROJ_DIR}"
 
-          # Build for iOS Simulator to avoid signing/device toolchain quirks
-          xcodebuild \
-            -project "${PROJECT_PATH}" \
-            -scheme AlphaWord \
-            -configuration Release \
-            -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
-            build
+    xcodebuild \
+      -project "${PROJECT_PATH}" \
+      -scheme AlphaWord \
+      -configuration Release \
+      -sdk iphonesimulator \
+      -destination 'generic/platform=iOS Simulator' \
+      build
+
 
     artifacts:
       - ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphonesimulator/*.app
