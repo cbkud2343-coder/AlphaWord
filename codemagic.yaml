@@ -15,44 +15,36 @@ workflows:
       - name: Show working directory
         script: |
           set -euxo pipefail
-          echo "PWD=$(pwd)"
-          ls -la
-          echo "Searching for project.yml / project.yaml ..."
-          find . -maxdepth 5 -type f \( -name "project.yml" -o -name "project.yaml" \) -print || true
+brew install xcodegen || brew upgrade xcodegen
 
-      - name: Install XcodeGen & generate project
-        script: |
-          set -euxo pipefail
-          brew install xcodegen || brew upgrade xcodegen
+# Find the spec anywhere in the repo
+SPEC="$(find . -maxdepth 8 -type f \( -name "project.yml" -o -name "project.yaml" \) | head -n1 || true)"
+if [ -z "${SPEC}" ]; then
+  echo "ERROR: Could not find project.yml or project.yaml"
+  exit 1
+fi
+echo "Found spec: ${SPEC}"
 
-          # Locate the XcodeGen spec anywhere in the repo
-          SPEC="$(find . -maxdepth 8 -type f \( -name "project.yml" -o -name "project.yaml" \) | head -n1 || true)"
-          if [ -z "${SPEC}" ]; then
-            echo "ERROR: Could not find project.yml or project.yaml"
-            exit 1
-          fi
-          echo "Found spec: ${SPEC}"
+SPEC_DIR="$(cd "$(dirname "${SPEC}")" && pwd)"
+SPEC_BASENAME="$(basename "${SPEC}")"
+cd "${SPEC_DIR}"
 
-          SPEC_DIR="$(cd "$(dirname "${SPEC}")" && pwd)"
-          cd "${SPEC_DIR}"
+# ✅ Correct command order
+xcodegen generate --spec "${SPEC_BASENAME}"
 
-          # Generate the Xcode project
-          xcodegen --spec "$(basename "${SPEC}")" generate
+echo "After generation:"
+ls -la
 
-          echo "After generation:"
-          ls -la
+# Verify .xcodeproj exists
+PROJ="$(find . -maxdepth 2 -type d -name "*.xcodeproj" | head -n1 || true)"
+if [ -z "${PROJ}" ]; then
+  echo "ERROR: .xcodeproj was not generated."
+  exit 1
+fi
+echo "Using project: ${PROJ}"
 
-          # Verify .xcodeproj exists
-          PROJ="$(find . -maxdepth 2 -type d -name "*.xcodeproj" | head -n1 || true)"
-          if [ -z "${PROJ}" ]; then
-            echo "ERROR: AlphaWord.xcodeproj was not generated."
-            exit 1
-          fi
-          echo "Using project: ${PROJ}"
-
-          # Save for the next step
-          echo "PROJECT_PATH=${PROJ}" >> $CM_ENV
-
+# Export for next step
+echo "PROJECT_PATH=${PROJ}" >> "$CM_ENV"
       - name: Build (no code signing)
         script: |
           set -euxo pipefail
